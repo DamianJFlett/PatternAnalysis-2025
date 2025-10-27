@@ -1,0 +1,7 @@
+DATA_DIR = "data/OASIS/"
+TEST_DIR_SEG = DATA_DIR + "keras_png_slices_seg_test/"
+TRAIN_DIR_SEG = DATA_DIR + "keras_png_slices_seg_train/"
+VALIDATE_DIR_SEG = DATA_DIR + "keras_png_slices_seg_validate/"
+TEST_DIR = DATA_DIR + "keras_png_slices_test/"
+TRAIN_DIR = DATA_DIR + "keras_png_slices_train/"
+VALIDATE_DIR = DATA_DIR + "keras_png_slices_seg_validate/"
