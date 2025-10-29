@@ -15,6 +15,30 @@ class ImprovedUnet(nn.Module):
         super().__init__()
         self.dropout_prob = 0.3
 
+        self.init_conv = nn.Conv2d(1, 16, 3, padding = 1)
+        self.init_cont = ContextBlock(16, 16, dropout_prob)
+        self.between1 = nn.Conv2d(16, 32, 3, stride = 2, padding = 1)
+
+        self.cont1 = ContextBlock(32, 32, dropout_prob)
+        self.between1 = nn.Conv2d(32, 64, 3, stride = 2, padding = 1)
+
+        self.cont2 = ContextBlock(64, 64, dropout_prob)
+        self.between1 = nn.Conv2d(64, 128, 3, stride = 2, padding = 1)
+
+        self.cont3 = ContextBlock(128, 128, dropout_prob)
+        self.between1 = nn.Conv2d(128, 256, 3, stride = 2, padding = 1)
+
+        self.cont4 = ContextBlock(256, 256, dropout_prob)
+
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+
+        self.loc1 = LocalisationBlock(128, 128)
+        self.loc2 = LocalisationBlock(64, 64)
+        self.loc3 = LocalisationBlock(32, 32)
+
+    def forward(self, x):
+        pass
+    
 class ContextBlock(nn.Module):
     """
     Context Module (pre-activation residual block) as per [1] converted to 2d:
