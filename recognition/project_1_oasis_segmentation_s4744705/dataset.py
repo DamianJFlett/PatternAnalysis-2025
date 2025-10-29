@@ -1,7 +1,6 @@
 import os 
 import torchvision.transforms as T
 from PIL import Image
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset 
 
 
@@ -68,3 +67,4 @@ def get_datasets_and_data_loaders(batch_size: int):
     test_data_loader = DataLoader(test_data_set, batch_size = batch_size)
     validation_data_set = OASISProjectDataset(VALIDATE_DIR, VALIDATE_DIR_SEG)
     validation_data_loader = DataLoader(validation_data_set, batch_size = batch_size)
+    return training_data_set, training_data_loader, test_data_set, test_data_loader, validation_data_set,validation_data_loader
