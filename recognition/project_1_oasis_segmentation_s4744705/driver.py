@@ -20,10 +20,10 @@ def main():
     parser.add_argument("--epochs", type = int, default = 20, help = "Number of Epochs to train for")
     parser.add_argument("--lr", type = float, default = 1e-4, help = "Learning Rate used in training")
     parser.add_argument("--dropout-prob", type = float, default = 0.3, help = "Dropout probability in context modules")
-    parser.add_argument("--plot", type = bool, default = True, help = "Decides whether to make and save plots or not" )
+    parser.add_argument("--plot", type = int, default = 1, help = "Decides whether to make and save plots or not" )
     parser.add_argument("--dir", type = str, default = "images/", help = "Where to save images for the report" )
     parser.add_argument("--seed", type = int, default = 1, help = "The seed to use when choosing what to make predictions on" )
-    parser.add_argument("--train_new", type = bool, default = False, help = "True if you want to train the model, False if you wan tto use the model saved in best_model.pth" )
+    parser.add_argument("--train-new", type = int, default = 0, help = "True if you want to train the model, False if you wan tto use the model saved in best_model.pth" )
     args = parser.parse_args()
     batch_size = args.batch_size
     epochs = args.epochs
@@ -39,7 +39,9 @@ def main():
         model = ImprovedUnet(dropout_prob=dropout_prob).to(device)
         train(model, train_loader, validation_loader, epochs = epochs, lr = lr, batch_size=batch_size, device = device, plot = plot)
     else:
-        model = torch.load("best_model.pth")
+        model = ImprovedUnet(dropout_prob=dropout_prob).to(device)
+        model.load_state_dict(torch.load("best_model.pth", map_location=device))
+        model.eval()
     test(model, test_loader, test_set, device = device)
     make_predictions(model, dir = dir, seed = seed, device = device)
 

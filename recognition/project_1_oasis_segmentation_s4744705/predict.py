@@ -1,9 +1,7 @@
 # Only to be used as a module!
-from train import train, test, create_plots, dice_score
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from dataset import get_datasets_and_data_loaders
 import torch
-import torch.nn as nn
 from modules import ImprovedUnet
 import random
 import matplotlib.pyplot as plt
@@ -30,4 +28,28 @@ def make_predictions(model: ImprovedUnet, dir: str = "images/", seed: int = 1, d
 
 
 def save_predictions(model: ImprovedUnet, dataset: Dataset, indices: list[int], filename: str, dir: str = "images/", seed: int = 1, device = None) -> None:
-    pass
+    """
+    ...
+    filename: name to save files as EXCLUDING DIRECTORY (will be indexed for multiple files)
+    """
+    for i, index in enumerate(indices):
+        image, mask = dataset[index]
+        image = image.unsqueeze(0).to(device)  # add batch dimension so model accepts it
+        with torch.no_grad():
+            pred = torch.sigmoid(model(image))
+        pred = pred.squeeze().cpu().numpy()
+        mask = mask.squeeze().cpu().numpy()
+        image = image.squeeze().cpu().numpy()
+
+        plt.figure(figsize=(12,4))
+        plt.subplot(1,3,1)
+        plt.title("Input")
+        plt.imshow(image, cmap="gray")
+        plt.subplot(1,3,2)
+        plt.title("Ground Truth")
+        plt.imshow(mask, cmap="gray")
+        plt.subplot(1,3,3)
+        plt.title("Prediction")
+        plt.imshow(pred, cmap="gray")
+        plt.savefig(f"{dir}/{filename}_{i}.png")
+        plt.close()
