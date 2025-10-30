@@ -94,9 +94,9 @@ class ImprovedUnet(nn.Module):
 class ContextBlock(nn.Module):
     """
     Context Module (pre-activation residual block) as per [1] converted to 2d:
-    Batch norm -> activation function (relu) -> 3*3 conv
+    instance norm -> activation function (relu) -> 3*3 conv
     -> dropout
-    -> Batch norm -> activation function (relu) -> 3*3 conv -> add on residual
+    -> instance norm -> activation function (relu) -> 3*3 conv -> add on residual
     where relus are leaky w/ slope 10^-2
     """
     def __init__(self, in_channels, out_channels, dropout_prob):
@@ -107,24 +107,24 @@ class ContextBlock(nn.Module):
         dropout_prob: probability of dropping out a node in context blocks
         """
         super().__init__()
-        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.instnorm1 = nn.InstanceNorm2d(in_channels)
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding = 1) # 3* 3 convulution
 
         self.dropout = nn.Dropout2d(dropout_prob)
 
-        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.instnorm2 = nn.InstanceNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding = 1)
         self.residual = nn.Conv2d(in_channels, out_channels, 1)
 
     def forward(self, x):
         residual = self.residual(x)
         
-        output = F.leaky_relu(self.bn1(x), negative_slope=10**(-2))
+        output = F.leaky_relu(self.instnorm1(x), negative_slope=10**(-2))
         output = self.conv1(output)
 
         output = self.dropout(output)
 
-        output = F.leaky_relu(self.bn2(output), negative_slope = 10**(-2))
+        output = F.leaky_relu(self.instnorm2(output), negative_slope = 10**(-2))
         output = self.conv2(output)
 
         return output + residual
@@ -133,7 +133,7 @@ class ContextBlock(nn.Module):
 class LocalisationBlock(nn.Module):
     """
     Localisation Module as per [1] converted to 2d:
-    3*3 conv, then 1*1 conv, then of course activation function and batch norm
+    3*3 conv, then 1*1 conv, then of course activation function and instance norm
     """
     def __init__(self, in_channels, out_channels):
         """
@@ -143,14 +143,14 @@ class LocalisationBlock(nn.Module):
         """
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding = 1)
-        self.bn = nn.BatchNorm2d(out_channels)
+        self.instnorm = nn.InstanceNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 1)
     def forward(self, x):
         """
         Apply in sequence the operations of a localisation block
         x: input to apply transforms on
         """
-        return F.leaky_relu(self.bn(self.conv2(self.conv1(x))), negative_slope = 10**(-2))
+        return F.leaky_relu(self.instnorm(self.conv2(self.conv1(x))), negative_slope = 10**(-2))
     
 """
 This code taken and modified from lecture code
