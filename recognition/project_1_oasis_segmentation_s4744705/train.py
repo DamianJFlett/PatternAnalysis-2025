@@ -5,6 +5,7 @@ from modules import ImprovedUnet, DiceLoss
 from torch.utils.data import DataLoader, Dataset
 from dataset import get_datasets_and_data_loaders
 import matplotlib.pyplot as plt
+import argparse
 
 def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
         predictions = torch.sigmoid(predictions)
@@ -89,12 +90,22 @@ def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset, device
 
 
 def main():
-    batch_size = 2
+    parser = argparse.ArgumentParser(description = "Train and Test the model")
+    parser.add_argument("--batch-size", type = int, default = 2, help = "Batch Size used in training")
+    parser.add_argument("--epochs", type = int, default = 20, help = "Number of Epochs to train for")
+    parser.add_argument("--lr", type = float, default = 1e-4, help = "Learning Rate used in training")
+    parser.add_argument("--dropout-prob", type = float, default = 0.3, help = "Dropour probability in context modules")
+    args = parser.parse_args()
+    batch_size = args.batch_size
+    epochs = args.epochs
+    lr = args.lr
+    dropout_prob = args.dropout_prob
+    batch_size 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Beginning training with device {device}...")
-    train_set, train_loader, test_set, test_loader, validation_set, validation_loader = get_datasets_and_data_loaders(batch_size)
-    model = ImprovedUnet(dropout_prob=0.3).to(device)
-    train(model, train_loader, validation_loader, epochs = 3, lr = 1e-4, batch_size=batch_size, device = device)
+    _, train_loader, test_set, test_loader, _, validation_loader = get_datasets_and_data_loaders(batch_size)
+    model = ImprovedUnet(dropout_prob=dropout_prob).to(device)
+    train(model, train_loader, validation_loader, epochs = epochs, lr = lr, batch_size=batch_size, device = device)
     print(f"Beginning testing...")
     test(model, test_loader, test_set, device = device)
 
