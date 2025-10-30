@@ -7,8 +7,11 @@ from dataset import get_datasets_and_data_loaders
 import matplotlib.pyplot as plt
 import argparse
 
+# Inspired by lecture code on DICE score
 def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
         predictions = torch.sigmoid(predictions)
+        # want plain binary prediction, not the probability vector
+        predictions = (predictions > 0.5).float()
         predictions = predictions.reshape(-1)
         targets = targets.reshape(-1).float()
 
@@ -19,7 +22,8 @@ def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
         # Return Dice Loss (1 - Dice Coefficient)
         return dice_coeff.item()
 
-def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Dataset, epochs: int = 20, lr: float = 1e-4, batch_size:int = 2, device = None):
+def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Dataset, epochs: int = 20, lr: float = 1e-4, batch_size:int = 2, device = None, plot: bool = True):
+    print(f"Beginning training with device {device}...")
     criterion = DiceLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -58,25 +62,35 @@ def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Data
         if dice_avg > best_dice:
             best_dice = dice_avg
             torch.save(model.state_dict(), "best_model.pth")
+    if plot:
+        create_plots(epoch_losses, dices, best_dice)
 
+    print(f"Training complete. Best Dice score: {best_dice}")
+    return model
+
+def create_plots(epoch_losses, dices, best_dice):
     plt.figure()
     plt.plot(epoch_losses, label="Train Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Training Loss")
     plt.legend()
-    plt.show()
+    plt.savefig('images/Training_loss.png')
+    plt.close()
+
+    plt.figure()
     plt.plot(dices, label="Average Dice Score")
     plt.xlabel("Epoch")
     plt.ylabel("Dice Score")
-    plt.show()
-
-    print(f"Training complete. Best Dice score: {best_dice}")
-    return model
+    plt.title("Validation Dice Score")
+    plt.legend()
+    plt.savefig('images/Dice_Score.png')
+    plt.close()
 
 
 
 def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset, device = None):
+    print(f"Beginning testing...")
     model.eval()
     dice_total = 0
     with torch.no_grad():
@@ -94,19 +108,19 @@ def main():
     parser.add_argument("--batch-size", type = int, default = 2, help = "Batch Size used in training")
     parser.add_argument("--epochs", type = int, default = 20, help = "Number of Epochs to train for")
     parser.add_argument("--lr", type = float, default = 1e-4, help = "Learning Rate used in training")
-    parser.add_argument("--dropout-prob", type = float, default = 0.3, help = "Dropour probability in context modules")
+    parser.add_argument("--dropout-prob", type = float, default = 0.3, help = "Dropout probability in context modules")
+    parser.add_argument("--plot", type = bool, default = True, help = "Decides whether to make and save plots or not" )
     args = parser.parse_args()
     batch_size = args.batch_size
     epochs = args.epochs
     lr = args.lr
     dropout_prob = args.dropout_prob
-    batch_size 
+    plot = args.plot
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Beginning training with device {device}...")
     _, train_loader, test_set, test_loader, _, validation_loader = get_datasets_and_data_loaders(batch_size)
     model = ImprovedUnet(dropout_prob=dropout_prob).to(device)
-    train(model, train_loader, validation_loader, epochs = epochs, lr = lr, batch_size=batch_size, device = device)
-    print(f"Beginning testing...")
+    train(model, train_loader, validation_loader, epochs = epochs, lr = lr, batch_size=batch_size, device = device, plot = plot)
+
     test(model, test_loader, test_set, device = device)
 
 if __name__ == "__main__":
