@@ -4,8 +4,19 @@ The improved UNet focuses on small batch sizes(2 in our, and in their case), for
 
 ![Figure showing the architecture of an Improved Unet](images/fig_1.png)
 
+## Files Included
 
-The data was trained for 20 epochs on a NVidia GTX 4060 with 8GiB of VRAM. To train the model yourself, on your system of choice, navigate to the directory 
+The included files are:
+ - ``dataset.py`` - Module containing loaders for OASIS data
+ - ``modules.py`` - Module containing blocks and modules used in the Improved UNet architecture
+ - ``train.py`` - Script or Module. Includes functions for training and testing Improved UNet, and can be run as a script to do both of those things.
+ - ``predict.py`` - Module continaing functions for plotting predictions against ground truth
+ - ``driver.py`` Script for putting it all together, training, testing, and plotting predictions. 
+ 
+
+## Training Information
+The data was trained for 20 epochs on a NVidia GTX 4060 with 8GiB of VRAM. It was trained using the Adam Optimizer with DICE criterion, validated at every epoch.
+To train the model yourself, on your system of choice, navigate to the directory 
 ```recognition/project_1_oasis_segmentation_s4744705``` 
 and run the command
 ```train.py```
@@ -117,3 +128,4 @@ Data preprocesing was as simple as pairing masks and original images, as the tra
 [1] F. Isensee, P. Kickingereder, W. Wick, M. Bendszus, and K. H. Maier-Hein, “Brain Tumor Segmentation
 and Radiomics Survival Prediction: Contribution to the BRATS 2017 Challenge,” Feb. 2018. [Online].
 Available: https://arxiv.org/abs/1802.10508v1
+
