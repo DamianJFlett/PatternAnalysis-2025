@@ -166,6 +166,6 @@ class DiceLoss(nn.Module):
         # Calculate intersection and union
         intersection = (predictions * targets).sum()
         dice_coeff = (2.0 * intersection + self.smooth) / (predictions.sum() + targets.sum() + self.smooth)
-
+        
         # Return Dice Loss (1 - Dice Coefficient)
         return 1 - dice_coeff

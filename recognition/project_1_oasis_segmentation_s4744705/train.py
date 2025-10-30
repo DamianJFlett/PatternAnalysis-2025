@@ -74,14 +74,18 @@ def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Data
     return model
 
 
-            
-                 
 
+def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset, device = None):
+    model.eval()
+    dice_total = 0
+    with torch.no_grad():
+        for images, masks in test_loader:
+            images, masks = images.to(device), masks.to(device)
+            outputs = model(images)
 
-
-
-def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset):
-    pass
+            dice_total += dice_score(outputs, masks)
+    avg_dice = dice_total/len(test_loader)
+    print(f"Average Dice Similarity score in testing was {avg_dice}")
 
 
 def main():
@@ -90,8 +94,9 @@ def main():
     print(f"Beginning training with device {device}...")
     train_set, train_loader, test_set, test_loader, validation_set, validation_loader = get_datasets_and_data_loaders(batch_size)
     model = ImprovedUnet(dropout_prob=0.3).to(device)
-    train(model, train_loader, validation_loader, epochs = 20, lr = 1e-4, batch_size=batch_size, device = device)
-    test(model, test_loader, test_set)
+    train(model, train_loader, validation_loader, epochs = 3, lr = 1e-4, batch_size=batch_size, device = device)
+    print(f"Beginning testing...")
+    test(model, test_loader, test_set, device = device)
 
 if __name__ == "__main__":
     main()
