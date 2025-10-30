@@ -45,7 +45,7 @@ class OASISProjectDataset(Dataset):
         img_location = os.path.join(self.img_directory, self.image_names[index])
         mask_location = os.path.join(self.mask_directory, self.mask_names[index]) 
         # Need channel dimension
-        img, mask = T.ToTensor(Image.open(img_location)), (T.ToTensor(Image.open(mask_location))> 0.5).float() # convert masks to boolean data
+        img, mask = T.ToTensor()(Image.open(img_location)), ((T.ToTensor()(Image.open(mask_location)))> 0.5).float() # convert masks to boolean data
         return img, mask
 
 def get_datasets_and_data_loaders(batch_size: int):

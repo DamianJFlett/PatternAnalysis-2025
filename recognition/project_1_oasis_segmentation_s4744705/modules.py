@@ -136,18 +136,35 @@ class LocalisationBlock(nn.Module):
     def forward(self, x):
         return F.leaky_relu(self.bn(self.conv2(self.conv1(x))), negative_slope = 10**(-2))
     
+"""
+This code taken and modified from lecture code
+"""
+class DiceLoss(nn.Module):
+    """Dice Loss for binary segmentation.
 
-#This Function generated mostly by ChatGPT
-def dice_loss(predicted, target, smooth=1e-6):
-    """
-    Dice loss for binary segmentation.
-    predicted: raw logits (N,1,H,W)
-    target: binary masks (N,1,H,W)
-    """
-    predicted = torch.sigmoid(predicted)
-    target = target.float()
+    Dice Loss = 1 - Dice Coefficient
+    Dice Coefficient = (2 * |X ∩ Y|) / (|X| + |Y|)
 
-    intersection = (predicted * target).sum(dim=(2,3))
-    denom = predicted.sum(dim=(2,3)) + target.sum(dim=(2,3))
-    dice = (2 * intersection + smooth) / (denom + smooth)
-    return 1 - dice.mean()
+    Args:
+        smooth (float): Smoothing factor to avoid division by zero (default: 1e-6)
+    """
+    def __init__(self, smooth=1e-6):
+        super(DiceLoss, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, predictions, targets):
+        """
+        Args:
+            predictions: Sigmoid output from model [B, H, W] (values between 0-1)
+            targets: Binary ground truth [B, H, W] (values 0 or 1)
+        """
+        # Flatten tensors using reshape to handle non-contiguous memory layout
+        predictions = predictions.reshape(-1)
+        targets = targets.reshape(-1).float()
+
+        # Calculate intersection and union
+        intersection = (predictions * targets).sum()
+        dice_coeff = (2.0 * intersection + self.smooth) / (predictions.sum() + targets.sum() + self.smooth)
+
+        # Return Dice Loss (1 - Dice Coefficient)
+        return 1 - dice_coeff
