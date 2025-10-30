@@ -2,16 +2,98 @@
 
 import torch
 from modules import ImprovedUnet, DiceLoss
+from torch.utils.data import DataLoader, Dataset
 from dataset import get_datasets_and_data_loaders
+import matplotlib.pyplot as plt
+
+def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
+        predictions = torch.sigmoid(predictions)
+        predictions = predictions.reshape(-1)
+        targets = targets.reshape(-1).float()
+
+        # Calculate intersection and union
+        intersection = (predictions * targets).sum()
+        dice_coeff = (2.0 * intersection + smooth) / (predictions.sum() + targets.sum() + smooth)
+
+        # Return Dice Loss (1 - Dice Coefficient)
+        return dice_coeff.item()
+
+def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Dataset, epochs: int = 20, lr: float = 1e-4, batch_size:int = 2, device = None):
+    criterion = DiceLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    best_dice = 0
+    epoch_losses, dices = [], []
+    for epoch in range(epochs):
+        model.train()
+        epoch_loss = 0.0
+        for batch_idx, (images, masks) in enumerate(train_loader):
+            # for each batch
+            images, masks = images.to(device), masks.to(device)
+            optimizer.zero_grad()
+            outputs = model(images)
+
+            loss = criterion(outputs, masks)
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item()
+        avg_loss = epoch_loss / len(train_loader)
+        epoch_losses.append(avg_loss)
+        # Validate
+        model.eval()
+        dice = 0
+        with torch.no_grad(): # Don't train the model here! 
+            for images, masks in validation_loader:
+                # Same as ab ove, we are just looking through batches, getting the current output, and evaluating it
+                images, masks = images.to(device), masks.to(device)
+                outputs = model(images)
+                dice += dice_score(outputs, masks)
+        dice_avg = dice/len(validation_loader)
+        dices.append(dice_avg)
+        print(f"Epoch {epoch + 1} Completed! \nTraining Loss: {avg_loss} | Dice Score on Validation Set: {dice_avg}...")
+
+        # Save best model
+        if dice_avg > best_dice:
+            best_dice = dice_avg
+            torch.save(model.state_dict(), "best_model.pth")
+
+    plt.figure()
+    plt.plot(epoch_losses, label="Train Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss")
+    plt.legend()
+    plt.show()
+    plt.plot(dices, label="Average Dice Score")
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Score")
+    plt.show()
+
+    print(f"Training complete. Best Dice score: {best_dice}")
+    return model
+
+
+            
+                 
 
 
 
-def train(model, train_loader, test_set, epochs = 20, lr = 1e-4, device = None):
+
+def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset):
     pass
 
-if __name__ == "__main__":
+
+def main():
+    batch_size = 2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Beginning training with device {device}...")
-    train_set, train_loader, test_set, test_loader, validation_set, validation_loader = get_datasets_and_data_loaders()
-    model = ImprovedUnet(dropout_prob=0.3)
-    train(model, train_loader, test_set, epochs = 20, lr = 1e-4, device = device)
+    train_set, train_loader, test_set, test_loader, validation_set, validation_loader = get_datasets_and_data_loaders(batch_size)
+    model = ImprovedUnet(dropout_prob=0.3).to(device)
+    train(model, train_loader, validation_loader, epochs = 20, lr = 1e-4, batch_size=batch_size, device = device)
+    test(model, test_loader, test_set)
+
+if __name__ == "__main__":
+    main()
+
+

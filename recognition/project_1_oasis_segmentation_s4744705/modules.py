@@ -159,6 +159,7 @@ class DiceLoss(nn.Module):
             targets: Binary ground truth [B, H, W] (values 0 or 1)
         """
         # Flatten tensors using reshape to handle non-contiguous memory layout
+        predictions = torch.sigmoid(predictions)
         predictions = predictions.reshape(-1)
         targets = targets.reshape(-1).float()
 
