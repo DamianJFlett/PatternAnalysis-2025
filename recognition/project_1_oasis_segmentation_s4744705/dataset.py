@@ -48,7 +48,7 @@ class OASISProjectDataset(Dataset):
         img, mask = T.ToTensor()(Image.open(img_location)), ((T.ToTensor()(Image.open(mask_location)))> 0.5).float() # convert masks to boolean data
         return img, mask
 
-def get_datasets_and_data_loaders(batch_size: int):
+def get_datasets_and_data_loaders(batch_size: int) -> tuple[DataLoader]:
     """
     batch_size: the batch size for the data loaders
     returns: tuple containing, in order
@@ -58,8 +58,6 @@ def get_datasets_and_data_loaders(batch_size: int):
         - Test Data Loader
         - Validation Data Set
         - Validation Data Loader
-
-
     """
     training_data_set = OASISProjectDataset(TRAIN_DIR, TRAIN_DIR_SEG)
     training_data_loader = DataLoader(training_data_set, batch_size = batch_size, shuffle = True) # best to shuffle training data

@@ -1,4 +1,4 @@
-# Can be run as a script or used as a library w/ the train function
+# Can be run as a script (if you just want to train and test the model for hyperparameter tuning etc.) or used as a library w/ the train function
 
 import torch
 from modules import ImprovedUnet, DiceLoss
@@ -9,8 +9,15 @@ import argparse
 
 # Inspired by lecture code on DICE score
 def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
+        """
+        Takes a batch of predictions and targets and returns the dice score over those.
+        predictions: predicted masks
+        targets: actual masks
+        smooth: smoothing constant, should be small. Avoids cases where coincidentally might have division by 0
+        returns: Dice score
+        """
         predictions = torch.sigmoid(predictions)
-        # want plain binary prediction, not the probability vector
+        # want plain binary prediction, not the probability vector (> 0.5 maps to 1: foreground, <=0.5 maps to 0: background)
         predictions = (predictions > 0.5).float()
         predictions = predictions.reshape(-1)
         targets = targets.reshape(-1).float()
@@ -19,10 +26,21 @@ def dice_score(predictions: torch.Tensor, targets: torch.Tensor, smooth = 1e-6):
         intersection = (predictions * targets).sum()
         dice_coeff = (2.0 * intersection + smooth) / (predictions.sum() + targets.sum() + smooth)
 
-        # Return Dice Loss (1 - Dice Coefficient)
         return dice_coeff.item()
 
-def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Dataset, epochs: int = 20, lr: float = 1e-4, batch_size:int = 2, device = None, plot: bool = True):
+def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Dataset, epochs: int = 20, lr: float = 1e-4, batch_size:int = 2, device = None, plot: bool = True) -> ImprovedUnet:
+    """
+    Trains an improved Unet Model, prints out progress output, validating as we go. Depending on parameters, also plots training loss and dice score over epochs.
+    model: Improved UNet to train
+    train_loader: data loader for training data
+    validation_loader: data loader for validation data
+    epochs: number of epochs to run training on
+    lr: learning rate
+    batch_size: batch size for training
+    device: device to conduct training on
+    plot: boolean indicating whether to draw and save new plots or not after training
+    returns: trained model
+    """
     print(f"Beginning training with device {device}...")
     criterion = DiceLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -63,12 +81,17 @@ def train(model: ImprovedUnet, train_loader: DataLoader, validation_loader: Data
             best_dice = dice_avg
             torch.save(model.state_dict(), "best_model.pth")
     if plot:
-        create_plots(epoch_losses, dices, best_dice)
+        create_plots(epoch_losses, dices)
 
     print(f"Training complete. Best Dice score: {best_dice}")
     return model
 
-def create_plots(epoch_losses, dices, best_dice):
+def create_plots(epoch_losses: list[float], dices: list[float]) -> None:
+    """
+    Creates plots for the dice scores and training losses
+    epoch_losses: array of losses during training
+    """
+
     plt.figure()
     plt.plot(epoch_losses, label="Train Loss")
     plt.xlabel("Epoch")
@@ -89,7 +112,14 @@ def create_plots(epoch_losses, dices, best_dice):
 
 
 
-def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset, device = None):
+def test(model: ImprovedUnet, test_loader: DataLoader, test_set: Dataset, device = None) -> None:
+    """
+    Tests an improved UNet model and prints out results
+    model: Model to test
+    test_loader: loader for testing data
+    test_set: dataset for testing data
+    device: device to create masks on
+    """
     print(f"Beginning testing...")
     model.eval()
     dice_total = 0

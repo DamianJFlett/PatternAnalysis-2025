@@ -3,13 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-
 class ImprovedUnet(nn.Module):
     """
     Architecture as per [1] converted to 2D as best as possible is(all Convs 3*3):
     conv -> (context module) -> stride 2 conv -> (context module) -> stride 2 conv -> 
     (context module) -> stride 2 conv -> (context module) stride 2 conv -> (context module)
-    #TODO: Make sure that all architectures are described completely. separating into classes makes it easy to describe blocks at a time
+    -> (upsample block) -> (upsample block) -> (upsample block)
+    where upsample blocks also have the corresponding level of context module output concatenated to their input
+    #NOTE: Although the paper uses a softmax in the final layer, it is unnecessary here as we do binary classification
     """
     def __init__(self, dropout_prob = 0.3):
         super().__init__()
@@ -96,9 +97,15 @@ class ContextBlock(nn.Module):
     Batch norm -> activation function (relu) -> 3*3 conv
     -> dropout
     -> Batch norm -> activation function (relu) -> 3*3 conv -> add on residual
-    where relus are leaking w/ slope 10^-2
+    where relus are leaky w/ slope 10^-2
     """
     def __init__(self, in_channels, out_channels, dropout_prob):
+        """
+        Initialise a Context Block.
+        in_channels: number of channels in input to block
+        out_channels: number of channels in output from block
+        dropout_prob: probability of dropping out a node in context blocks
+        """
         super().__init__()
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding = 1) # 3* 3 convulution
@@ -129,11 +136,20 @@ class LocalisationBlock(nn.Module):
     3*3 conv, then 1*1 conv, then of course activation function and batch norm
     """
     def __init__(self, in_channels, out_channels):
+        """
+        Initialise a Localisation block
+        in_channels: the number of input channels to the block
+        out_channels: the number of output channels from the block
+        """
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding = 1)
         self.bn = nn.BatchNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 1)
     def forward(self, x):
+        """
+        Apply in sequence the operations of a localisation block
+        x: input to apply transforms on
+        """
         return F.leaky_relu(self.bn(self.conv2(self.conv1(x))), negative_slope = 10**(-2))
     
 """
